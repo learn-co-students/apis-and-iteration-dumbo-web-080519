@@ -4,11 +4,21 @@ require 'pry'
 
 def get_character_movies_from_api(character_name)
   #make the web request
-  response_string = RestClient.get('http://www.swapi.co/api/people/').body
-  response_hash = JSON.parse(response_string)
-  results = response_hash["results"]
-  character_hash = results.find {|characters| characters["name"].downcase == character_name}
-  films = character_hash["films"]
+  url = 'http://www.swapi.co/api/people/'
+  character_hash = nil
+  loop do
+    response_string = RestClient.get(url).body
+    response_hash = JSON.parse(response_string)
+    results = response_hash["results"]
+    character_hash = results.find {|characters| characters["name"].downcase == character_name}
+    if !response_hash["next"] || character_hash
+      break
+    else
+      url = response_hash["next"]
+    end
+  end
+  character_hash ? character_hash["films"] : nil
+
   #binding.pry
   # iterate over the response hash to find the collection of `films` for the given
   #   `character`
@@ -33,7 +43,12 @@ end
 
 def show_character_movies(character)
   films = get_character_movies_from_api(character)
-  print_movies(films)
+  if films
+    print_movies(films)
+  else 
+    puts "Character does not exist."
+    run_search
+  end
 end
 
 ## BONUS
